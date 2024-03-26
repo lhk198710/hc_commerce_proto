@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="true">
+    <property name="LOGS_PATH" value="./logs" />
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="com.happycommerce.common.MaskingPatternLayout">
+                <maskPattern>\"onlnPwd\\{0,1}\"\s*:\s*\\{0,1}\"(.*?)\"</maskPattern>
+                <Pattern>[%d{yyyy-MM-dd HH:mm:ss}:%-3relative][%-5level][%thread][%logger{36}] - %msg%n</Pattern>
+            </layout>
+        </encoder>
+    </appender>
+
+    <springProfile name="!release">
+        <root level="DEBUG">
+            <appender-ref ref="STDOUT" />
+        </root>
+    </springProfile>
+
+    <springProfile name="release">
+        <root level="DEBUG">
+        </root>
+    </springProfile>
+
+</configuration>

@@ -123,13 +123,13 @@ public class SecureHandler {
                 .map(authRequestDto -> HPCAuthRequestDto.builder()
                         .trsDt(StringUtil.convertDateToString(now, "yyyyMMdd"))
                         .trsTm(StringUtil.convertDateToString(now, "HHmmss"))
-                        .tracNo("1234567890")
+                        .tracNo(CommonUtil.getTraceId(request))
                         .reqUserId(authRequestDto.getHpcId())
                         .onlnId(authRequestDto.getHpcId())
                         .onlnPwd(authRequestDto.getHpcPwd())
                         .build())
                 .flatMap(hpcAuthRequestDto -> commonWebClient.sendDataPostApplicationJson(hpcWebClientFactory.getClient(),
-                        "https://dev-apin.happypointcard.co.kr:7243/processHpc",
+                        "https://xxx-auth.com/test",
                         hpcAuthRequestDto, HPCAuthResponseDto.class, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON, "test"))
                 .map(hpcAuthResponseDto -> {
                     try {

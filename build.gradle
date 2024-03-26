@@ -59,9 +59,13 @@ dependencies {
     // swagger
     implementation 'org.springdoc:springdoc-openapi-webflux-ui:1.6.4'
 
+    // logback-dependencies
+    implementation 'ch.qos.logback:logback-core:1.2.3'
+    implementation 'ch.qos.logback:logback-classic:1.2.3'
+
     // 역직렬화 이슈 패키지
-    //implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
-    //implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
 }
 
 tasks.named('test') {
