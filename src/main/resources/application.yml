@@ -1,0 +1,23 @@
+spring:
+  devtools:
+    add-properties: true
+  r2dbc:
+    url: r2dbc:pool:mysql://localhost:3306/lhk8710
+    username: lhk8710
+    password: lhk8710
+
+logging:
+  level:
+    org.springframework.r2dbc.core: debug
+    root: debug
+
+com:
+  klindziuk:
+    flux:
+      springdoc:
+        api:
+          router:
+            separate:
+              ebabled: false
+            common:
+              enabled: true
