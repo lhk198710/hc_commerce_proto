@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.happycommerce.ErrorMessage;
+import com.happycommerce.dto.ClientResponseDto;
 import com.happycommerce.security.KeyAuthenticationConverter;
 import com.happycommerce.security.KeyAuthenticationManager;
 import lombok.RequiredArgsConstructor;
@@ -55,23 +56,10 @@ public class SecurityConfiguration {
                 .formLogin().disable()
                 .logout().disable()
 
-                // 인증 에러(APIKey)
-                /*.exceptionHandling().authenticationEntryPoint((exchange, denied) -> {
-                    log.error("Http Status 401 error. {}", exchange.getRequest().getRemoteAddress().getAddress().getHostAddress());
-                    return Mono.fromRunnable(() -> {
-                        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                    }); // 테스트 위해 임시로 작성.
-                })*/
-                .exceptionHandling().authenticationEntryPoint(serverAuthenticationEntryPoint()) // 401 Error
+                .exceptionHandling().authenticationEntryPoint(serverAuthenticationEntryPoint()) // 401 Error(인증에러)
                 .and()
-                // 인가 에러(ROLE)
-                /*.exceptionHandling().accessDeniedHandler((exchange, denied) -> {
-                    log.error("Http Status 403 error. {}", exchange.getRequest().getRemoteAddress().getAddress().getHostAddress());
-                    return Mono.fromRunnable(() -> {
-                        exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
-                    }); // 테스트 위해 임시로 작성
-                })*/
-                .exceptionHandling().accessDeniedHandler(serverAccessDeniedHandler()) // 403 Error
+
+                .exceptionHandling().accessDeniedHandler(serverAccessDeniedHandler()) // 403 Error(인가에러)
                 .and()
 
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance()) // SESSION STATELESS
@@ -92,6 +80,7 @@ public class SecurityConfiguration {
 
     /**
      * Http status 401 error response
+     *
      * @return ServerAuthenticationEntryPoint
      */
     private ServerAuthenticationEntryPoint serverAuthenticationEntryPoint() {
@@ -104,17 +93,17 @@ public class SecurityConfiguration {
             serverHttpResponse.getHeaders().setContentType(MediaType.APPLICATION_JSON);
             serverHttpResponse.setStatusCode(HttpStatus.UNAUTHORIZED);
 
-            ErrorMessage errorMessage = new ErrorMessage(HttpStatus.UNAUTHORIZED.value()
-                    , LocalDateTime.now()
-                    , authEx.getMessage()
-                    , requestPath); // Test 목적으로 만든 인증 실패 에러 객체. 나중에 응답 객체 형식이 정해지면 해당 객체를 사용해야함.
+            ClientResponseDto clientResponseDto = new ClientResponseDto();
+            clientResponseDto.setStatus(HttpStatus.UNAUTHORIZED.value());
+            clientResponseDto.setData(authEx.getMessage());
 
-            return serverHttpResponse(serverHttpResponse, errorMessage);
+            return serverHttpResponse(serverHttpResponse, clientResponseDto);
         };
     }
 
     /**
      * Http status 403 error response
+     *
      * @return ServerAccessDeniedHandler
      */
     private ServerAccessDeniedHandler serverAccessDeniedHandler() {
@@ -127,20 +116,19 @@ public class SecurityConfiguration {
             serverHttpResponse.getHeaders().setContentType(MediaType.APPLICATION_JSON);
             serverHttpResponse.setStatusCode(HttpStatus.FORBIDDEN);
 
-            ErrorMessage errorMessage = new ErrorMessage(HttpStatus.FORBIDDEN.value()
-                    , LocalDateTime.now()
-                    , accessEx.getMessage()
-                    , requestPath);
+            ClientResponseDto clientResponseDto = new ClientResponseDto();
+            clientResponseDto.setStatus(HttpStatus.FORBIDDEN.value());
+            clientResponseDto.setData(accessEx.getMessage());
 
-            return serverHttpResponse(serverHttpResponse, errorMessage);
+            return serverHttpResponse(serverHttpResponse, clientResponseDto);
         };
     }
 
-    private Mono<Void> serverHttpResponse(ServerHttpResponse serverHttpResponse, ErrorMessage errorMessage) {
+    private <T> Mono<Void> serverHttpResponse(ServerHttpResponse serverHttpResponse, T clientResponseDto) {
         try {
             byte[] errorByte = new ObjectMapper()
                     .registerModule(new JavaTimeModule())
-                    .writeValueAsBytes(errorMessage);
+                    .writeValueAsBytes(clientResponseDto);
             DataBuffer dataBuffer = serverHttpResponse.bufferFactory().wrap(errorByte);
             return serverHttpResponse.writeWith(Mono.just(dataBuffer));
         } catch (JsonProcessingException e) {
