@@ -18,6 +18,13 @@ public class CommonApiException extends RuntimeException {
     private String errorMessage = "";
 
     public CommonApiException(String errorCode, String errorMessage) {
+        super(errorMessage);
+        this.errorCode = errorCode;
+        this.errorMessage = errorMessage;
+    }
+
+    public CommonApiException(String errorCode, String errorMessage, Throwable throwable) {
+        super(errorMessage, throwable);
         this.errorCode = errorCode;
         this.errorMessage = errorMessage;
     }

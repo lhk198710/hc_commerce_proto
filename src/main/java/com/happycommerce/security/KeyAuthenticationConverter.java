@@ -34,7 +34,7 @@ public class KeyAuthenticationConverter implements ServerAuthenticationConverter
         this.proxyApiKeyRepository = proxyApiKeyRepository;
         this.tokenCache = Caffeine.newBuilder()
                 .maximumSize(10_000) // 최대 캐시 크기
-                .expireAfterAccess(1, TimeUnit.MINUTES) // 캐시 만료 시간
+                .expireAfterAccess(60, TimeUnit.MINUTES) // 캐시 만료 시간
                 .buildAsync(new DatabaseCacheLoader(proxyApiKeyRepository));
     }
 

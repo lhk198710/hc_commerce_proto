@@ -8,7 +8,9 @@ import reactor.core.publisher.Mono;
 
 /**
  * For Test
+ * 트랜잭션 테스트를 목적으로 생성한 클래스로 서비스에서는 사용 할 일 없음.
  */
+@Deprecated
 @Component
 public class Transaction {
     private static TransactionalOperator operator;

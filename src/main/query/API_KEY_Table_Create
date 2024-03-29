@@ -1,47 +1,19 @@
--- --------------------------------------------------------
--- 호스트:                          127.0.0.1
--- 서버 버전:                        10.4.24-MariaDB - mariadb.org binary distribution
--- 서버 OS:                        Win64
--- HeidiSQL 버전:                  12.6.0.6765
--- --------------------------------------------------------
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET NAMES utf8 */;
-/*!50503 SET NAMES utf8mb4 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-
-
--- lhk8710 데이터베이스 구조 내보내기
-CREATE DATABASE IF NOT EXISTS `lhk8710` /*!40100 DEFAULT CHARACTER SET utf8mb4 */;
-USE `lhk8710`;
-
--- 테이블 lhk8710.t_proxy_api_key 구조 내보내기
-CREATE TABLE IF NOT EXISTS `t_proxy_api_key` (
-  `SEQ` int(11) NOT NULL AUTO_INCREMENT COMMENT '시퀀스',
-  `CLIENT_NAME` varchar(50) NOT NULL,
-  `CLIENT_CODE` varchar(4) NOT NULL,
-  `USE_YN` varchar(1) NOT NULL DEFAULT 'N',
-  `API_KEY` varchar(512) NOT NULL,
-  `ROLE` varchar(512) DEFAULT 'MEMBER',
-  `REG_DATE` timestamp NOT NULL DEFAULT current_timestamp(),
-  `REG_ID` varchar(10) NOT NULL,
-  `UPD_DATE` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `UPD_ID` varchar(10) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`SEQ`),
-  UNIQUE KEY `API_KEY` (`API_KEY`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COMMENT='중계서버에서 사용하는 일부 API 들을 호출하기 위한 Key 관리 테이블';
-
--- 테이블 데이터 lhk8710.t_proxy_api_key:~2 rows (대략적) 내보내기
-INSERT INTO `t_proxy_api_key` (`SEQ`, `CLIENT_NAME`, `CLIENT_CODE`, `USE_YN`, `API_KEY`, `ROLE`, `REG_DATE`, `REG_ID`, `UPD_DATE`, `UPD_ID`) VALUES
-	(1, 'BR', 'BR', 'Y', 'abc', 'ROLE_ADMIN', '2024-03-07 07:02:08', 'hk.lee', '2024-03-15 07:47:13', 'hk.lee'),
-	(2, 'sdf', 'sdf', 'Y', 'def', 'ROLE_MEMBER', '2024-03-07 07:02:17', 'hk.lee', '2024-03-15 07:56:33', 'hk.lee');
-
-/*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
-/*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
-/*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40111 SET SQL_NOTES=IFNULL(@OLD_SQL_NOTES, 1) */;
+CREATE TABLE `t_proxy_api_key` (
+	`SEQ` INT(11) NOT NULL AUTO_INCREMENT COMMENT '시퀀스',
+	`CLIENT_NAME` VARCHAR(50) NOT NULL COLLATE 'utf8mb4_general_ci',
+	`CLIENT_CODE` VARCHAR(4) NOT NULL COLLATE 'utf8mb4_general_ci',
+	`USE_YN` VARCHAR(1) NOT NULL DEFAULT 'N' COLLATE 'utf8mb4_general_ci',
+	`API_KEY` VARCHAR(512) NOT NULL COLLATE 'utf8mb4_general_ci',
+	`ROLE` VARCHAR(512) NULL DEFAULT 'MEMBER' COLLATE 'utf8mb4_general_ci',
+	`REG_DATE` TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+	`REG_ID` VARCHAR(10) NOT NULL COLLATE 'utf8mb4_general_ci',
+	`UPD_DATE` TIMESTAMP NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+	`UPD_ID` VARCHAR(10) NOT NULL DEFAULT '0' COLLATE 'utf8mb4_general_ci',
+	PRIMARY KEY (`SEQ`) USING BTREE,
+	UNIQUE INDEX `API_KEY` (`API_KEY`) USING BTREE
+)
+COMMENT='중계서버에서 사용하는 일부 API 들을 호출하기 위한 Key 관리 테이블'
+COLLATE='utf8mb4_general_ci'
+ENGINE=InnoDB
+AUTO_INCREMENT=43
+;

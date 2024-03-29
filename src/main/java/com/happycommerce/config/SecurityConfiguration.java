@@ -3,7 +3,6 @@ package com.happycommerce.config;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.happycommerce.ErrorMessage;
 import com.happycommerce.dto.ClientResponseDto;
 import com.happycommerce.security.KeyAuthenticationConverter;
 import com.happycommerce.security.KeyAuthenticationManager;
@@ -26,8 +25,6 @@ import org.springframework.security.web.server.authentication.AuthenticationWebF
 import org.springframework.security.web.server.authorization.ServerAccessDeniedHandler;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 import reactor.core.publisher.Mono;
-
-import java.time.LocalDateTime;
 
 @Configuration
 @EnableWebFluxSecurity

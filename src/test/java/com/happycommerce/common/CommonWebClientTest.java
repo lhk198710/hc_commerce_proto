@@ -48,7 +48,7 @@ class CommonWebClientTest {
                 .build();
 
         Mono<HPCAuthResponseDto> hpcAuthRequestDtoMono = commonWebClient.sendDataPostApplicationJson(hpcWebClientFactory.getClient(),
-                "https://dev-apin.happypointcard.co.kr:7243/processHpc",
+                "https://abcd:7243/processHpc",
                 hpcAuthRequestDto, HPCAuthResponseDto.class, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON, "test");
         log.info("Response data : {}", hpcAuthRequestDtoMono.block().hpcAuthResponseOf());
     }

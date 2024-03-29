@@ -4,6 +4,7 @@ import com.happycommerce.common.WebClients;
 import com.happycommerce.interfaces.WebClientFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -16,6 +17,11 @@ import java.nio.charset.StandardCharsets;
 @Slf4j
 @Component
 public class HPCWebClientFactory implements WebClientFactory {
+    @Value("${api.hpc.connectTimeout}")
+    int connectTimeout;
+    @Value("${api.hpc.readTimeout}")
+    int readTimeout;
+
     private final WebClient webClient;
     private final MediaType sendMediaType;
     private final MediaType recvMediaType;

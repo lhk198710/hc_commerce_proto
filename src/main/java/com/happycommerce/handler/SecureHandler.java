@@ -4,12 +4,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.happycommerce.api.HPCWebClientFactory;
 import com.happycommerce.common.CommonWebClient;
 import com.happycommerce.dto.*;
+import com.happycommerce.entity.Member;
 import com.happycommerce.entity.ProxyApiKey;
+import com.happycommerce.exception.CommonApiException;
+import com.happycommerce.repository.MemberRepository;
 import com.happycommerce.repository.ProxyApiKeyRepository;
 import com.happycommerce.util.CommonUtil;
 import com.happycommerce.util.CommonValidator;
 import com.happycommerce.util.StringUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.reactive.TransactionalOperator;
@@ -17,24 +22,32 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.concurrent.TimeoutException;
 
 @Slf4j
 @Component
 public class SecureHandler {
+    @Value("${api.hpc.url}")
+    private String hpcUrl;
     private final ProxyApiKeyRepository proxyApiKeyRepository; // R2DBC 레포지토리
     private final TransactionalOperator operator; // 트랜잭션 처리
     private final CommonValidator commonValidator; // Spring validator
     private final CommonWebClient commonWebClient; // HTTPS 통신
     private final HPCWebClientFactory hpcWebClientFactory; // FOR HPC
+    private final MemberRepository memberRepository;
 
-    public SecureHandler(ProxyApiKeyRepository proxyApiKeyRepository, TransactionalOperator operator, CommonValidator commonValidator, CommonWebClient commonWebClient, HPCWebClientFactory hpcWebClientFactory) {
+    public SecureHandler(ProxyApiKeyRepository proxyApiKeyRepository, TransactionalOperator operator, CommonValidator commonValidator, CommonWebClient commonWebClient, HPCWebClientFactory hpcWebClientFactory, MemberRepository memberRepository) {
         this.proxyApiKeyRepository = proxyApiKeyRepository;
         this.operator = operator;
         this.commonValidator = commonValidator;
         this.commonWebClient = commonWebClient;
         this.hpcWebClientFactory = hpcWebClientFactory;
+        this.memberRepository = memberRepository;
     }
 
     public Mono<ServerResponse> testHandler(ServerRequest request) {
@@ -107,19 +120,22 @@ public class SecureHandler {
     }
 
     /**
-     * HPC Communicate test
-     * - map 안에 map 사용건에 대한 개선 조언을 기반으로 수정
-     * - flatMap : DB 작업, 통신 작업 위주 진행
-     * - map : 기타 작업 진행
+     * 회원 서버 Communicate test
+     * - API 서버 통신 후 db 작업에 대한 학습을 목적으로 정의 된 함수다.
+     * - 본 코드에서 정의된 API 서버는 실존하는 서버가 아님을 명시한다.
      * @param request
      * @return
      */
     public Mono<ServerResponse> testHPCComm(ServerRequest request) {
+        final String HPC_RPS_SUCCESS_CODE = "00";
+        final String HPC_RPS_DTL_SUCCESS_CODE = "0000";
+
         log.info("Received request: /api/admin/v1/hpc/get");
         LocalDateTime now = LocalDateTime.now();
 
         return request.bodyToMono(AuthRequestDto.class)
                 .doOnNext(authRequestDto -> log.info("stream start : {}, traceId : {}", authRequestDto, CommonUtil.getTraceId(request)))
+                .doOnNext(testRequestDto -> commonValidator.validate(testRequestDto))
                 .map(authRequestDto -> HPCAuthRequestDto.builder()
                         .trsDt(StringUtil.convertDateToString(now, "yyyyMMdd"))
                         .trsTm(StringUtil.convertDateToString(now, "HHmmss"))
@@ -129,17 +145,48 @@ public class SecureHandler {
                         .onlnPwd(authRequestDto.getHpcPwd())
                         .build())
                 .flatMap(hpcAuthRequestDto -> commonWebClient.sendDataPostApplicationJson(hpcWebClientFactory.getClient(),
-                        "https://xxx-auth.com/test",
-                        hpcAuthRequestDto, HPCAuthResponseDto.class, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON, "test"))
-                .map(hpcAuthResponseDto -> {
-                    try {
-                        return hpcAuthResponseDto.hpcAuthResponseOf(); // 나중에 ResponseDTO로 바꿀 것
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
+                        hpcUrl,
+                        hpcAuthRequestDto, HPCAuthResponseDto.class, MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON, CommonUtil.getTraceId(request)))
+                .flatMap(hpcApiAuthResponseDto -> {
+                    if (hpcApiAuthResponseDto.getRpsCd().equals(HPC_RPS_SUCCESS_CODE) && hpcApiAuthResponseDto.getRpsDtlCd().equals(HPC_RPS_DTL_SUCCESS_CODE)) {
+                        return memberRepository.findByMbrNo(hpcApiAuthResponseDto.getMbrNo())
+                                .subscribeOn(Schedulers.boundedElastic())
+                                .timeout(Duration.ofMillis(3000), Mono.error(new TimeoutException("memberRepository.findByMbrNo() timeout")))
+                                .flatMap(existingMember -> {
+                                    existingMember.setLoginToken(CommonUtil.generateLoginToken());
+                                    return Mono.just(existingMember);
+                                })
+                                .switchIfEmpty(Mono.defer(() -> {
+                                    Member member = Member.builder()
+                                            .mbrNo(hpcApiAuthResponseDto.getMbrNo())
+                                            .id(hpcApiAuthResponseDto.getOnlnId())
+                                            .name(hpcApiAuthResponseDto.getMbrNm())
+                                            .hpcCardNo(hpcApiAuthResponseDto.getCardNo())
+                                            .loginToken(CommonUtil.generateLoginToken())
+                                            .build();
+
+                                    return Mono.just(member);
+                                }))
+                                ;
+                    } else {
+                        return Mono.error(new CommonApiException(hpcApiAuthResponseDto.getRpsDtlCd(), hpcApiAuthResponseDto.getRpsDtlMsg()));
                     }
                 })
+                .flatMap(memberRepository::save) // save 또는 업데이트(mbrNo 존재 기준)
+                .map(data -> {
+                    // 성공
+                    return ClientResponseDto.builder()
+                            .status(HttpStatus.OK.value())
+                            .data(new HashMap() {
+                                {
+                                    put("loginToken", data.getLoginToken());
+                                }
+                            })
+                            .build();
+                })
                 .flatMap(result -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(result)
-                        .doOnError(ex -> log.error("testHPCComm exception : ", ex)))
+                        .doOnError(ex -> log.error("webLogin exception : ", ex)))
+                .as(operator::transactional)
                 ;
     }
 }
